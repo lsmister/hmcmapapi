@@ -28,6 +28,43 @@ Route::group([
 });
 
 
+//携程酒店集团
+Route::group([
+    'prefix' => 'hotelGroup'
+], function ($router) {
+    $router->get('lists', 'HotelGroupController@lists');
+    $router->post('create', 'HotelGroupController@create');
+    $router->patch('edit', 'HotelGroupController@edit');
+    $router->delete('destroy/{id}', 'HotelGroupController@destroy');
+});
+
+
+//携程酒店集团
+Route::group([
+    'prefix' => 'group',
+    'namespace' => 'Group'
+], function ($router) {
+    
+    //mrt
+    $router->group([
+        'prefix' => 'mrt',
+        'namespace' => 'Mrt'
+    ], function ($router) {
+
+        $router->group([
+            'prefix' => 'hotel'
+        ], function ($router) {
+            $router->get('lists', 'HotelController@lists');
+            $router->post('create', 'HotelController@create');
+            $router->patch('edit', 'HotelController@edit');
+            $router->delete('destroy/{id}', 'HotelController@destroy');
+        });
+    });
+
+});
+
+
+
 //系统管理
 Route::group([
     'prefix' => 'system',
