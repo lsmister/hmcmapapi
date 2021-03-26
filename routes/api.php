@@ -58,6 +58,16 @@ Route::group([
             $router->post('create', 'HotelController@create');
             $router->patch('edit', 'HotelController@edit');
             $router->delete('destroy/{id}', 'HotelController@destroy');
+            $router->patch('changeStatus', 'HotelController@changeStatus');
+        });
+
+        $router->group([
+            'prefix' => 'roomType'
+        ], function ($router) {
+            $router->get('lists', 'RoomTypeController@lists');
+            $router->patch('edit', 'RoomTypeController@edit');
+            $router->delete('destroy/{id}', 'RoomTypeController@destroy');
+            $router->get('lookSubRooms/{id}', 'RoomTypeController@lookSubRooms');
         });
     });
 
