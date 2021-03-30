@@ -5,10 +5,13 @@ namespace App\Http\Controllers\Api\Group\Mrt;
 use App\Models\Mrt\MrtRoomType;
 use App\Models\Mrt\MrtSubRoom;
 
+use App\Libs\CtripStaticApi;
+
 use App\Http\Controllers\Controller;
 use App\Response\ResponseCode;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Batch;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Arr;
@@ -89,6 +92,23 @@ class RoomTypeController extends Controller
                         ->get();
 
         return ResponseCode::json(0, '获取列表成功', $subRooms);
+    }
+
+
+    public function editSubRoom(Request $request)
+    {
+        $c = new CtripStaticApi();
+
+        $a = $c->mappingInfoSearch(true);
+        dd($a);
+
+        $data = Arr::where($request->all(), function ($value) {
+            return $value !== null;
+        });
+
+        MrtSubRoom::where('id', $data['id'])->update(Arr::except($data, ['id']));
+
+        return ResponseCode::json(0, '更新成功');
     }
 
 

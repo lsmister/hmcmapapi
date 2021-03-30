@@ -40,6 +40,10 @@ class HotelController extends Controller
             $model = $model->where('ctrip_hotel_code', $request->get('ctrip_hotel_code'));
         }
 
+        if($request->filled('match_status')) {
+            $model = $model->where('match_status', $request->get('match_status'));
+        }
+
         $list = $model->paginate($request->limit);
 
         return ResponseCode::json(0, '获取列表成功', $list);
@@ -120,6 +124,25 @@ class HotelController extends Controller
 
 
     public function changeStatus(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|exists:mrt_hotels',
+            'status' => 'required|numeric|in:0,1'
+        ]);
+
+        if ($validator->fails()) {
+            return ResponseCode::json(4001);
+        }
+
+        $row = $validator->validated();
+        if (MrtHotel::where('id', $row['id'])->update(['status' => $row['status']])) {
+            return ResponseCode::json(0, '操作成功');
+        }
+
+        return ResponseCode::json(5003);
+    }
+
+    public function updMappingStatus()
     {
         $validator = Validator::make($request->all(), [
             'id' => 'required|exists:mrt_hotels',

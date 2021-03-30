@@ -165,6 +165,7 @@ return [
         /*
          * Package Service Providers...
          */
+        // App\Providers\CtripServiceProvider::class,
 
         /*
          * Application Service Providers...
