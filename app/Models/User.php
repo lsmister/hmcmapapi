@@ -12,7 +12,7 @@ class User extends Authenticatable implements JWTSubject
 
     protected $guarded = [];
 
-    protected $appends = ['role_labels'];
+    protected $appends = ['role_label'];
 
     protected $hidden = [
         'role',
@@ -42,9 +42,9 @@ class User extends Authenticatable implements JWTSubject
     }
 
 
-    public function roles()
+    public function role()
     {
-        return $this->belongsToMany(Role::class);
+        return $this->belongsTo(Role::class);
     }
 
     public function isAdministrator()
@@ -54,13 +54,13 @@ class User extends Authenticatable implements JWTSubject
         return $flag;
     }
 
-    public function getRoleLabelsAttribute()
+    public function getRoleLabelAttribute()
     {
-        if ($this->roles->count() > 0) {
-            return $this->roles->toArray();
+        if ($this->role) {
+            return $this->role->name;
         }
         
-        return [];
+        return '';
     }
 
     public function getIsAdminAttribute()

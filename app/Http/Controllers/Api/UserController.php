@@ -46,65 +46,9 @@ class UserController extends Controller
     {
         $data['name'] = $this->user->name;
         $data['avatar'] = $this->user->avatar;
-        $data['roles'] = $this->user->roles->pluck('slug');
+        $data['role'] = $this->user->role->slug;
 
         return ResponseCode::json(0, '获取用户信息成功', $data);
-    }
-
-    public function accessRoutes()
-    {
-        $roles = $this->user->roles;
-        if($roles->count() == 0) {
-            return ResponseCode::json(0, '未分配角色');
-        }
-
-        if($role->menus->count() == 0) {
-            return ResponseCode::json(0, '未分配权限');
-        }
-
-        $menus = $role->menus->where('permission_type', 'page')->toArray();
-        $routes = $this->categoryMenu($menus, 0);
-
-        return ResponseCode::json(0, '获取授权路由列表成功', $routes);
-    }
-
-    public function categoryMenu($menus, $parent_id)
-    {
-        $data = [];
-        foreach($menus as $v) {
-            if($v['parent_id'] == $parent_id) {
-                $data[] = $v;
-            }
-        }
-
-        if(count($data) == 0) {
-            return [];
-        }else {
-            foreach($data as $key => $val) {
-                $info[$key]['path'] = $val['url'];
-                $info[$key]['component'] = $val['component'];
-
-                $str = ltrim($val['url'], '/');
-                if(strpos($str, '/')) {
-                    $arr = explode('/', $str);
-                    $name = '';
-                    foreach($arr as $a) {
-                        $name .= ucfirst($a);
-                    }
-                }else {
-                    $name = ucfirst($str);
-                }
-                $info[$key]['name'] = $name;
-                $info[$key]['meta']['title'] = $val['title'];
-                $info[$key]['meta']['icon'] = $val['icon'];
-                $info[$key]['children'] = $this->categoryMenu($menus, $val['id']);
-                if(empty($info[$key]['children'])) {
-                    unset($info[$key]['children']);
-                }
-            }
-        }
-
-        return $info;
     }
 
     public function create(Request $request)
@@ -122,6 +66,7 @@ class UserController extends Controller
         $row = $validator->validated();
         $row['password'] = Hash::make($row['password']);
         $row['avatar'] = getenv('APP_URL').'/upload/images/1-avatar.jpeg';
+        $row['role_id'] = 2; //初始角色id
         if($user = User::create($row)) {
             return ResponseCode::json(0, '添加成功', $user);
         }
@@ -187,9 +132,6 @@ class UserController extends Controller
             return ResponseCode::json(5004);
         }
 
-        //移除角色
-        $this->user->roles()->detach();
-
         if(User::destroy($id)){
             return ResponseCode::json(0, '删除成功');
         }
@@ -210,20 +152,21 @@ class UserController extends Controller
         if ($request->isMethod('get')) {
 
             $data['all_roles'] = Role::select('id', 'name')->where('slug', '!=', 'supper_admin')->get();
-            $data['user_role_ids'] = $user->roles->pluck('id');
+            $data['user_role_id'] = $user->role ? $user->role->id : 0;
 
             return ResponseCode::json(0, '获取角色列表成功', $data);
         }
 
-        $n = Role::whereIn('id', $request->role_ids)->count();
-        if(count($request->role_ids) != $n) {
+        $n = Role::where('id', $request->role_id)->count();
+        if($n < 1) {
             return ResponseCode::json(4004);
         }
 
-        $user->roles()->sync($request->role_ids);
+        $user->role_id = $request->role_id;
+        if ($user->save()) {
+            return ResponseCode::json(0, '分配成功', $user);
+        }
         
-        return ResponseCode::json(0, '分配成功', $user);
-
         return ResponseCode::json(5003);
     }
 }

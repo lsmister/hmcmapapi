@@ -26,24 +26,14 @@ class MenuController extends Controller
         $this->user = Auth::user();
     }
     
-    public function lists(Request $request)
-    {
-        $this->clearCache();
-        $model = Menu::query();
-        
-        if($request->filled('id')) {
-            $model = $model->where('id', $request->get('id'));
-        }
-        if($request->filled('title')) {
-            $model = $model->where('title', 'like', '%'.$request->get('title').'%');
-        }
-        if($request->filled('permission_type')) {
-            $model = $model->where('permission_type', $request->get('permission_type'));
+    public function getMenuInfo($id) {
+        $menu = Menu::select('id','parent_id','title','order','component','icon')->find($id);
+
+        if ($menu) {
+            return ResponseCode::json(0, '获取成功', $menu);
         }
 
-        $list = $model->paginate($request->limit);
-
-        return ResponseCode::json(0, '获取菜单列表成功', $list);
+        return ResponseCode::json(5003);
     }
 
     public function create(Request $request)
@@ -53,9 +43,7 @@ class MenuController extends Controller
             'title' => 'required|string',
             'icon' => 'sometimes|nullable|string',
             'order' => 'required|numeric',
-            'url' => 'nullable|string|max:191',
             'component' => 'nullable|string|max:191',
-            'permission_type' => 'required|string'
         ]);
 
         if ($validator->fails()) {
@@ -66,7 +54,7 @@ class MenuController extends Controller
         $row = Menu::create($data);
         if($row) {
             $this->clearCache();
-            return ResponseCode::json(0, '添加成功', $row);
+            return $this->getLevelOptions();
         }
 
         return ResponseCode::json(5003);
@@ -81,9 +69,7 @@ class MenuController extends Controller
             'title' => 'required|string',
             'icon' => 'sometimes|nullable|string',
             'order' => 'required|numeric',
-            'url' => 'nullable|string|max:191',
             'component' => 'nullable|string|max:191',
-            'permission_type' => 'required|string'
         ]);
 
         if ($validator->fails()) {
@@ -93,7 +79,7 @@ class MenuController extends Controller
         $row = Arr::except($validator->validated(), ['id']);
         if(Menu::where('id', $request->id)->update($row)) {
             $this->clearCache();
-            return ResponseCode::json(0, '更新成功');
+            return $this->getLevelOptions();
         }
 
         return ResponseCode::json(5003);
@@ -108,41 +94,43 @@ class MenuController extends Controller
         $row = Menu::find($id);
         if($row) {
             $row->delete();
-            $row->roles()->detach();
+            // $row->roles()->detach();
             $this->clearCache();
             return ResponseCode::json(0, '删除成功');
         }
 
-        $this->clearCache();
         return ResponseCode::json(5003);
     }
 
-    //获取顶级菜单
-    public function getTopLevel()
-    {
-        $list = Menu::where('parent_id', 0)
-                    ->where('permission_type', 'page')
-                    ->select('id', 'parent_id', 'title')
-                    ->get();
 
-        return ResponseCode::json(0, '获取菜单列表成功', $list);
+    //资源改变时重新加载缓存
+    public function clearCache()
+    {
+        Cache::forget('laravel_system_menu_category_menus');
+        Cache::forget('laravel_system_menu_category_ids');
     }
 
-    //select菜单
-    public function getSelectOptions()
+
+    //菜单列表
+    public function getLevelOptions()
     {
-        $list = Cache::rememberForever('laravel_system_menu_select_options', function () {
-            $menus = Menu::where('permission_type', 'page')->orderBy('order')->get()->toArray();
-            $list = $this->categorySelectOption($menus, 0);
+        // $this->clearCache();
+        $data['categoryMenus'] = Cache::rememberForever('laravel_system_menu_category_menus', function () {
+            $menus = Menu::get()->toArray();
+            $list = $this->categoryMenu($menus, 0);
             array_unshift($list, ['id' => 0, 'label' => '顶级']);
             return $list;
         });
 
-        return ResponseCode::json(0, '获取select菜单成功', $list);
+        $data['categoryIds'] = Cache::rememberForever('laravel_system_menu_category_ids', function () {
+            return Menu::pluck('id');
+        });
+
+        return ResponseCode::json(0, '获取菜单成功', $data);
     }
 
-    //生成无限级select选项
-    public function categorySelectOption($menus, $parent_id, $level = 0)
+
+    public function categoryMenu($menus, $parent_id)
     {
         $data = [];
         foreach($menus as $v) {
@@ -157,9 +145,9 @@ class MenuController extends Controller
             foreach($data as $key => $val) {
                 $info[$key]['id'] = $val['id'];
                 $info[$key]['label'] = $val['title'];
-                $children = $this->categorySelectOption($menus, $val['id'], $level + 1);
-                if (!empty($children)) {
-                    $info[$key]['children'] = $children;
+                $info[$key]['children'] = $this->categoryMenu($menus, $val['id']);
+                if(empty($info[$key]['children'])) {
+                    unset($info[$key]['children']);
                 }
             }
         }
@@ -167,11 +155,4 @@ class MenuController extends Controller
         return $info;
     }
 
-    //资源改变时重新加载缓存
-    public function clearCache()
-    {
-        Cache::forget('laravel_system_menu_select_options');
-        Cache::forget('laravel_system_role_category_menus');
-        Cache::forget('laravel_system_role_category_ids');
-    }
 }

@@ -34,7 +34,7 @@ class AuthController extends Controller
             return ResponseCode::json(5001);
         }
 
-        if (!$user->roles->count()) {
+        if (!$user->role) {
             return ResponseCode::json(4007);
         }
 

@@ -7,7 +7,7 @@ class Menu extends Basic
 {
     protected $guarded = [];
 
-    protected $appends = ['parent_label'];
+    protected $appends = ['parent_name'];
 
     protected $hidden = ['parent', 'updated_at'];
 
@@ -27,15 +27,17 @@ class Menu extends Basic
     }
 
     //上级菜单title
-    public function getParentLabelAttribute()
+    public function getParentNameAttribute()
     {
-        if (isset($this->attributes['parent_id'])) {
+        if ($this->attributes['parent_id'] != 0) {
             if ($this->parent) {
                 return $this->parent->title;
+            }else {
+                return '';
             }
         }
 
-        return '';
+        return '顶级';
     }
 
 }
