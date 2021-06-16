@@ -40,4 +40,30 @@ class Menu extends Basic
         return '顶级';
     }
 
+    public function categoryMenu($menus, $parent_id)
+    {
+        $data = [];
+        foreach($menus as $v) {
+            if($v['parent_id'] == $parent_id) {
+                $data[] = $v;
+            }
+        }
+
+        if(count($data) == 0) {
+            return [];
+        }else {
+            foreach($data as $key => $val) {
+                $info[$key]['id'] = $val['id'];
+                $info[$key]['label'] = $val['title'];
+                $info[$key]['icon'] = $val['icon'];
+                $info[$key]['children'] = $this->categoryMenu($menus, $val['id']);
+                if(empty($info[$key]['children'])) {
+                    unset($info[$key]['children']);
+                }
+            }
+        }
+
+        return $info;
+    }
+
 }

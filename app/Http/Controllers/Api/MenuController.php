@@ -117,7 +117,7 @@ class MenuController extends Controller
         // $this->clearCache();
         $data['categoryMenus'] = Cache::rememberForever('laravel_system_menu_category_menus', function () {
             $menus = Menu::get()->toArray();
-            $list = $this->categoryMenu($menus, 0);
+            $list = (new Menu)->categoryMenu($menus, 0);
             array_unshift($list, ['id' => 0, 'label' => '顶级']);
             return $list;
         });
@@ -127,32 +127,6 @@ class MenuController extends Controller
         });
 
         return ResponseCode::json(0, '获取菜单成功', $data);
-    }
-
-
-    public function categoryMenu($menus, $parent_id)
-    {
-        $data = [];
-        foreach($menus as $v) {
-            if($v['parent_id'] == $parent_id) {
-                $data[] = $v;
-            }
-        }
-
-        if(count($data) == 0) {
-            return [];
-        }else {
-            foreach($data as $key => $val) {
-                $info[$key]['id'] = $val['id'];
-                $info[$key]['label'] = $val['title'];
-                $info[$key]['children'] = $this->categoryMenu($menus, $val['id']);
-                if(empty($info[$key]['children'])) {
-                    unset($info[$key]['children']);
-                }
-            }
-        }
-
-        return $info;
     }
 
 }

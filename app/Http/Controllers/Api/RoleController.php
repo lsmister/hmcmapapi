@@ -54,6 +54,7 @@ class RoleController extends Controller
             return ResponseCode::json(0, '添加成功', $row);
         }
 
+        $this->clearCache();
         return ResponseCode::json(5003);
 
     }
@@ -79,6 +80,7 @@ class RoleController extends Controller
             return ResponseCode::json(0, '更新成功');
         }
 
+        $this->clearCache();
         return ResponseCode::json(5003);
     }
 
@@ -96,19 +98,21 @@ class RoleController extends Controller
             return ResponseCode::json(0, '删除成功');
         }
 
+        $this->clearCache();
         return ResponseCode::json(5003);
     }
 
     //分配权限
     public function allotPermission(Request $request)
     {
+        // $this->clearCache();
         $role = Role::findOrFail($request->role_id);
 
         if ($request->isMethod('get')) {
             $data['useMenus'] = $role->menus->pluck('id');
             $data['categoryMenus'] = Cache::rememberForever('laravel_system_role_category_menus', function () {
                 $menus = Menu::get()->toArray();
-                return $this->categoryMenu($menus, 0);
+                return (new Menu)->categoryMenu($menus, 0);
             });
             $data['categoryIds'] = Cache::rememberForever('laravel_system_role_category_ids', function () {
                 return Menu::pluck('id');
@@ -124,28 +128,12 @@ class RoleController extends Controller
 
     }
 
-    public function categoryMenu($menus, $parent_id)
+
+    //资源改变时重新加载缓存
+    public function clearCache()
     {
-        $data = [];
-        foreach($menus as $v) {
-            if($v['parent_id'] == $parent_id) {
-                $data[] = $v;
-            }
-        }
-
-        if(count($data) == 0) {
-            return [];
-        }else {
-            foreach($data as $key => $val) {
-                $info[$key]['id'] = $val['id'];
-                $info[$key]['label'] = $val['title'];
-                $info[$key]['children'] = $this->categoryMenu($menus, $val['id']);
-                if(empty($info[$key]['children'])) {
-                    unset($info[$key]['children']);
-                }
-            }
-        }
-
-        return $info;
+        Cache::forget('laravel_system_role_category_menus');
+        Cache::forget('laravel_system_role_category_ids');
     }
+    
 }
